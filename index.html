@@ -93,7 +93,7 @@
   </div>
   <div class="alert alert-success" id="alert-success">✅ Оценка сохранена в Google Таблице!</div>
   <div class="alert alert-error" id="alert-error">❌ Ошибка сети. Проверьте интернет.</div>
-  <div class="alert alert-error" id="alert-validation">⚠️ Выберите монтажника и оцените все критерии.</div>
+  <div class="alert alert-error" id="alert-validation">⚠️ Выберите монтажника и оцените хотя бы один критерий.</div>
   <div id="vote-btn-wrap" style="display:none">
     <button class="btn btn-primary" id="submit-btn" onclick="submitVote()">💾 Сохранить оценку</button>
   </div>
@@ -244,13 +244,18 @@ function updateTotal(){
   const vals=Object.values(currentScores);
   const el=document.getElementById('total-score');
   if(!vals.length){el.textContent='—';return;}
-  el.textContent=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2)+' / 5.00';
+  const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+  el.textContent=avg+' / 5.00  (заполнено '+vals.length+' из '+CRITERIA.length+')';
 }
 
 async function submitVote(){
   hideAlerts();
   const worker=document.getElementById('worker-select').value;
-  if(!worker||CRITERIA.some(c=>!currentScores[c.id])){
+  if(!worker){
+    document.getElementById('alert-validation').style.display='block'; return;
+  }
+  const filledCount=Object.keys(currentScores).length;
+  if(filledCount===0){
     document.getElementById('alert-validation').style.display='block'; return;
   }
   const btn=document.getElementById('submit-btn');
@@ -289,8 +294,9 @@ function renderResults(rows){
   rows.forEach(r=>{ const w=r[2]; if(!w)return; if(!byWorker[w])byWorker[w]=[]; byWorker[w].push(r); });
   const stats=Object.entries(byWorker).map(([name,arr])=>{
     const avg={};
-    KEYS.forEach((k,i)=>{ const v=arr.map(r=>parseFloat(r[3+i])).filter(x=>!isNaN(x)); avg[k]=v.length?v.reduce((a,b)=>a+b,0)/v.length:0; });
-    const coeff=Object.values(avg).reduce((a,b)=>a+b,0)/KEYS.length;
+    KEYS.forEach((k,i)=>{ const v=arr.map(r=>parseFloat(r[3+i])).filter(x=>!isNaN(x)&&x>0); avg[k]=v.length?v.reduce((a,b)=>a+b,0)/v.length:null; });
+    const filled=Object.values(avg).filter(v=>v!==null);
+    const coeff=filled.length?filled.reduce((a,b)=>a+b,0)/filled.length:0;
     return {name,votes:arr.length,coeff,avg};
   }).sort((a,b)=>b.coeff-a.coeff);
   summary.textContent=`Всего оценок: ${rows.length} | Монтажников: ${stats.length}`;
@@ -300,9 +306,11 @@ function renderResults(rows){
     card.innerHTML=`<div class="worker-header"><div><div class="worker-name">${idx===0?'🏆 ':''}${ws.name}</div><div class="votes-count">${ws.votes} оценок</div></div><div><div class="worker-coeff ${idx===0?'top-coeff':''}">${ws.coeff.toFixed(2)}</div><div style="font-size:.75rem;text-align:center;color:#aaa">из 5.00</div></div></div><div class="criteria-breakdown"></div>`;
     const bd=card.querySelector('.criteria-breakdown');
     CRITERIA.forEach(c=>{
-      const val=ws.avg[c.id]; const bp=(val/5*100).toFixed(0);
+      const val=ws.avg[c.id];
+      const bp=val!==null?(val/5*100).toFixed(0):0;
+      const valStr=val!==null?val.toFixed(1):'—';
       const row=document.createElement('div'); row.className='breakdown-row';
-      row.innerHTML=`<div class="breakdown-label">${c.icon} ${c.label}</div><div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${bp}%"></div></div><div class="breakdown-val">${val.toFixed(1)}</div>`;
+      row.innerHTML=`<div class="breakdown-label">${c.icon} ${c.label}</div><div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${bp}%"></div></div><div class="breakdown-val">${valStr}</div>`;
       bd.appendChild(row);
     });
     grid.appendChild(card);
