@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оценка монтажников — ErgoGlass</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #222; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white; padding: 18px 32px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  header h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px; }
+  header span { font-size: 1.8rem; }
+
+  .tabs {
+    display: flex; background: #16213e; padding: 0 32px; gap: 4px;
+  }
+  .tab-btn {
+    padding: 10px 24px; background: transparent; border: none;
+    color: #8899aa; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+    border-bottom: 3px solid transparent; transition: all 0.2s;
+  }
+  .tab-btn.active { color: #fff; border-bottom-color: #4fc3f7; }
+  .tab-btn:hover { color: #cde; }
+
+  .tab-content { display: none; padding: 28px 32px; max-width: 860px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  .card {
+    background: white; border-radius: 12px;
+    padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+  .card h2 { font-size: 1.05rem; margin-bottom: 16px; color: #1a1a2e; font-weight: 600; }
+
+  /* Форма голосования */
+  label.field-label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #555; font-weight: 500; }
+  select, input[type=text] {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #dde;
+    border-radius: 8px; font-size: 0.95rem; outline: none;
+    transition: border 0.2s; background: #fafbfc;
+  }
+  select:focus, input[type=text]:focus { border-color: #4fc3f7; }
+
+  .criteria-grid { display: grid; gap: 14px; margin-top: 8px; }
+  .criterion {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: #f7f9fc; border-radius: 10px;
+    gap: 16px;
+  }
+  .criterion-label { font-size: 0.88rem; color: #333; flex: 1; line-height: 1.4; }
+  .criterion-label .icon { margin-right: 6px; }
+  .stars { display: flex; gap: 6px; flex-shrink: 0; }
+  .star {
+    width: 32px; height: 32px; cursor: pointer; font-size: 1.3rem;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; transition: transform 0.15s;
+    user-select: none;
+  }
+  .star:hover { transform: scale(1.2); }
+  .star.active { filter: none; }
+  .star:not(.active) { opacity: 0.25; }
+
+  .score-badge {
+    min-width: 44px; text-align: center; font-weight: 700;
+    font-size: 0.95rem; color: #4fc3f7; padding: 4px 8px;
+    background: #e8f7fd; border-radius: 6px;
+  }
+
+  .btn {
+    padding: 11px 28px; border: none; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #4fc3f7; color: #fff; }
+  .btn-primary:hover { background: #29b6f6; transform: translateY(-1px); }
+  .btn-danger { background: #ff5252; color: #fff; font-size: 0.8rem; padding: 6px 14px; }
+  .btn-danger:hover { background: #e53935; }
+  .btn-sm { background: #e3f2fd; color: #1976d2; font-size: 0.8rem; padding: 6px 14px; }
+  .btn-sm:hover { background: #bbdefb; }
+
+  .alert {
+    padding: 12px 18px; border-radius: 8px; margin-bottom: 16px;
+    font-size: 0.9rem; display: none;
+  }
+  .alert-success { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #4caf50; }
+  .alert-error { background: #ffebee; color: #c62828; border-left: 4px solid #ef5350; }
+
+  /* Результаты */
+  .results-grid { display: grid; gap: 16px; }
+  .worker-card {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border-left: 5px solid #4fc3f7;
+  }
+  .worker-card.top { border-left-color: #ffd600; }
+  .worker-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+  }
+  .worker-name { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; }
+  .worker-coeff {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #4fc3f7, #0288d1);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .worker-coeff.top-coeff {
+    background: linear-gradient(135deg, #ffd600, #ff8f00);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .votes-count { font-size: 0.8rem; color: #888; }
+
+  .criteria-breakdown { display: grid; gap: 6px; margin-top: 10px; }
+  .breakdown-row { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; }
+  .breakdown-label { flex: 1; color: #555; }
+  .breakdown-bar-wrap { width: 120px; background: #eee; border-radius: 4px; height: 8px; }
+  .breakdown-bar { height: 8px; border-radius: 4px; background: #4fc3f7; transition: width 0.6s; }
+  .breakdown-val { width: 28px; text-align: right; font-weight: 600; color: #333; }
+
+  /* Управление монтажниками */
+  .workers-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .worker-tag {
+    display: flex; align-items: center; gap: 8px;
+    background: #e3f2fd; border-radius: 20px;
+    padding: 6px 14px; font-size: 0.88rem; color: #1565c0;
+  }
+  .worker-tag button {
+    background: none; border: none; color: #e53935; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0;
+  }
+
+  .add-worker-row { display: flex; gap: 10px; margin-top: 12px; }
+  .add-worker-row input { flex: 1; }
+
+  .empty-state { text-align: center; padding: 40px; color: #aaa; font-size: 0.95rem; }
+
+  .total-row {
+    display: flex; justify-content: space-between;
+    padding: 14px 16px; background: #e8f7fd;
+    border-radius: 10px; margin-top: 12px;
+    font-weight: 700; font-size: 1rem; color: #1a1a2e;
+  }
+
+  @media (max-width: 600px) {
+    .tab-content { padding: 16px; }
+    header { padding: 14px 16px; }
+    .tabs { padding: 0 16px; }
+    .criterion { flex-direction: column; align-items: flex-start; }
+    .breakdown-bar-wrap { width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🔧</span>
+  <h1>Оценка монтажников — ErgoGlass</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('vote')">⭐ Голосование</button>
+  <button class="tab-btn" onclick="switchTab('results')">📊 Результаты</button>
+  <button class="tab-btn" onclick="switchTab('manage')">👷 Монтажники</button>
+</div>
+
+<!-- TAB: ГОЛОСОВАНИЕ -->
+<div class="tab-content active" id="tab-vote">
+  <div class="card">
+    <h2>Кто оценивает?</h2>
+    <label class="field-label">Ваше имя (необязательно)</label>
+    <input type="text" id="voter-name" placeholder="Например: Иван">
+  </div>
+
+  <div class="card">
+    <h2>Выберите монтажника</h2>
+    <label class="field-label">Монтажник</label>
+    <select id="worker-select" onchange="onWorkerSelect()">
+      <option value="">— выберите —</option>
+    </select>
+  </div>
+
+  <div class="card" id="criteria-card" style="display:none">
+    <h2>Оценка по критериям <span style="font-size:0.8rem;color:#888;font-weight:400">(1 = слабо, 5 = отлично)</span></h2>
+    <div class="criteria-grid" id="criteria-grid"></div>
+    <div class="total-row" id="total-row">
+      <span>Итоговый коэффициент</span>
+      <span id="total-score">—</span>
+    </div>
+  </div>
+
+  <div class="alert alert-success" id="alert-success">✅ Оценка сохранена!</div>
+  <div class="alert alert-error" id="alert-error">⚠️ Пожалуйста, выберите монтажника и оцените все критерии.</div>
+
+  <div id="vote-btn-wrap" style="display:none">
+    <button class="btn btn-primary" onclick="submitVote()">💾 Сохранить оценку</button>
+  </div>
+</div>
+
+<!-- TAB: РЕЗУЛЬТАТЫ -->
+<div class="tab-content" id="tab-results">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:0.9rem;color:#666;" id="results-summary"></div>
+    <button class="btn btn-danger" onclick="clearAllVotes()">🗑 Очистить все оценки</button>
+  </div>
+  <div class="results-grid" id="results-grid">
+    <div class="empty-state">Пока нет оценок. Перейдите на вкладку «Голосование».</div>
+  </div>
+</div>
+
+<!-- TAB: МОНТАЖНИКИ -->
+<div class="tab-content" id="tab-manage">
+  <div class="card">
+    <h2>Добавить монтажника</h2>
+    <div class="add-worker-row">
+      <input type="text" id="new-worker-input" placeholder="Имя и фамилия" onkeydown="if(event.key==='Enter')addWorker()">
+      <button class="btn btn-primary" onclick="addWorker()">+ Добавить</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Список монтажников</h2>
+    <div class="workers-list" id="workers-list"></div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const CRITERIA = [
+  { id: 'experience',    icon: '🛠', label: 'Опыт монтажа большинства систем' },
+  { id: 'problem',       icon: '🧩', label: 'Самостоятельно решает сложности и предлагает решения' },
+  { id: 'reporting',     icon: '📋', label: 'Отчитывается о проделанной работе' },
+  { id: 'drawings',      icon: '📐', label: 'Понимает чертежи и техдокументацию' },
+  { id: 'client',        icon: '🤝', label: 'Можно доверить общение с клиентом / архитектором' },
+  { id: 'responsibility',icon: '✅', label: 'Берёт ответственность за монтаж, подготовку и результат' },
+  { id: 'optimization',  icon: '⚡', label: 'Видит как улучшить / ускорить работу и делает это' },
+  { id: 'reliability',   icon: '🕐', label: 'Надёжен: приходит вовремя, может задержаться, вежлив' },
+  { id: 'quality',       icon: '💎', label: 'Качество и аккуратность монтажа (нет переделок)' },
+  { id: 'safety',        icon: '🦺', label: 'Соблюдает технику безопасности' },
+  { id: 'teamwork',      icon: '👥', label: 'Работа в команде, помогает другим' },
+];
+
+function loadWorkers() {
+  return JSON.parse(localStorage.getItem('eg_workers') || '[]');
+}
+function saveWorkers(w) {
+  localStorage.setItem('eg_workers', JSON.stringify(w));
+}
+function loadVotes() {
+  return JSON.parse(localStorage.getItem('eg_votes') || '[]');
+}
+function saveVotes(v) {
+  localStorage.setItem('eg_votes', JSON.stringify(v));
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'results') renderResults();
+  if (tab === 'vote') populateWorkerSelect();
+  if (tab === 'manage') renderWorkersList();
+}
+
+// ===== VOTE TAB =====
+let currentScores = {};
+
+function populateWorkerSelect() {
+  const sel = document.getElementById('worker-select');
+  const workers = loadWorkers();
+  sel.innerHTML = '<option value="">— выберите —</option>';
+  workers.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w; opt.textContent = w;
+    sel.appendChild(opt);
+  });
+}
+
+function onWorkerSelect() {
+  const val = document.getElementById('worker-select').value;
+  const card = document.getElementById('criteria-card');
+  const btnWrap = document.getElementById('vote-btn-wrap');
+  if (!val) { card.style.display = 'none'; btnWrap.style.display = 'none'; return; }
+  card.style.display = 'block'; btnWrap.style.display = 'block';
+  currentScores = {};
+  renderCriteria();
+  updateTotal();
+}
+
+function renderCriteria() {
+  const grid = document.getElementById('criteria-grid');
+  grid.innerHTML = '';
+  CRITERIA.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'criterion';
+    const label = document.createElement('div');
+    label.className = 'criterion-label';
+    label.innerHTML = `<span class="icon">${c.icon}</span>${c.label}`;
+
+    const stars = document.createElement('div');
+    stars.className = 'stars';
+    for (let i = 1; i <= 5; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.textContent = '★';
+      s.dataset.val = i;
+      s.dataset.cid = c.id;
+      s.onclick = () => setScore(c.id, i);
+      stars.appendChild(s);
+    }
+
+    const badge = document.createElement('div');
+    badge.className = 'score-badge';
+    badge.id = 'badge-' + c.id;
+    badge.textContent = '—';
+
+    row.appendChild(label);
+    row.appendChild(stars);
+    row.appendChild(badge);
+    grid.appendChild(row);
+  });
+}
+
+function setScore(cid, val) {
+  currentScores[cid] = val;
+  // update stars
+  document.querySelectorAll(`.star[data-cid="${cid}"]`).forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.val) <= val);
+  });
+  document.getElementById('badge-' + cid).textContent = val;
+  updateTotal();
+}
+
+function updateTotal() {
+  const vals = Object.values(currentScores);
+  const el = document.getElementById('total-score');
+  if (vals.length === 0) { el.textContent = '—'; return; }
+  const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+  el.textContent = avg.toFixed(2) + ' / 5.00';
+}
+
+function submitVote() {
+  hideAlerts();
+  const worker = document.getElementById('worker-select').value;
+  if (!worker) { showAlert('error'); return; }
+  const missing = CRITERIA.filter(c => !currentScores[c.id]);
+  if (missing.length > 0) { showAlert('error'); return; }
+
+  const vote = {
+    worker,
+    voter: document.getElementById('voter-name').value.trim() || 'Аноним',
+    scores: { ...currentScores },
+    ts: Date.now()
+  };
+  const votes = loadVotes();
+  votes.push(vote);
+  saveVotes(votes);
+
+  showAlert('success');
+  // reset
+  currentScores = {};
+  document.getElementById('worker-select').value = '';
+  document.getElementById('criteria-card').style.display = 'none';
+  document.getElementById('vote-btn-wrap').style.display = 'none';
+}
+
+function showAlert(type) {
+  document.getElementById('alert-' + type).style.display = 'block';
+  setTimeout(() => hideAlerts(), 3000);
+}
+function hideAlerts() {
+  document.querySelectorAll('.alert').forEach(el => el.style.display = 'none');
+}
+
+// ===== RESULTS TAB =====
+function renderResults() {
+  const votes = loadVotes();
+  const workers = loadWorkers();
+  const grid = document.getElementById('results-grid');
+  const summary = document.getElementById('results-summary');
+
+  if (votes.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Пока нет оценок. Перейдите на вкладку «Голосование».</div>';
+    summary.textContent = '';
+    return;
+  }
+
+  // group by worker
+  const byWorker = {};
+  workers.forEach(w => byWorker[w] = []);
+  votes.forEach(v => {
+    if (!byWorker[v.worker]) byWorker[v.worker] = [];
+    byWorker[v.worker].push(v);
+  });
+
+  // calc coefficients
+  const workerStats = Object.entries(byWorker)
+    .filter(([,arr]) => arr.length > 0)
+    .map(([name, arr]) => {
+      const avgPerCrit = {};
+      CRITERIA.forEach(c => {
+        const vals = arr.map(v => v.scores[c.id]).filter(x => x !== undefined);
+        avgPerCrit[c.id] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+      });
+      const coeff = Object.values(avgPerCrit).reduce((a,b)=>a+b,0) / CRITERIA.length;
+      return { name, votes: arr.length, coeff, avgPerCrit };
+    })
+    .sort((a,b) => b.coeff - a.coeff);
+
+  summary.textContent = `Всего оценок: ${votes.length} | Монтажников: ${workerStats.length}`;
+
+  grid.innerHTML = '';
+  workerStats.forEach((ws, idx) => {
+    const card = document.createElement('div');
+    card.className = 'worker-card' + (idx === 0 ? ' top' : '');
+
+    const pct = (ws.coeff / 5 * 100).toFixed(0);
+    card.innerHTML = `
+      <div class="worker-header">
+        <div>
+          <div class="worker-name">${idx === 0 ? '🏆 ' : ''}${ws.name}</div>
+          <div class="votes-count">${ws.votes} оценок</div>
+        </div>
+        <div>
+          <div class="worker-coeff ${idx===0?'top-coeff':''}">${ws.coeff.toFixed(2)}</div>
+          <div style="font-size:0.75rem;text-align:center;color:#aaa">из 5.00</div>
+        </div>
+      </div>
+      <div class="criteria-breakdown" id="bd-${ws.name.replace(/\s/g,'_')}"></div>
+    `;
+    grid.appendChild(card);
+
+    const bd = card.querySelector('.criteria-breakdown');
+    CRITERIA.forEach(c => {
+      const val = ws.avgPerCrit[c.id];
+      const barPct = (val / 5 * 100).toFixed(0);
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+      row.innerHTML = `
+        <div class="breakdown-label">${c.icon} ${c.label}</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${barPct}%"></div></div>
+        <div class="breakdown-val">${val.toFixed(1)}</div>
+      `;
+      bd.appendChild(row);
+    });
+  });
+}
+
+// ===== MANAGE TAB =====
+function renderWorkersList() {
+  const workers = loadWorkers();
+  const list = document.getElementById('workers-list');
+  if (workers.length === 0) {
+    list.innerHTML = '<div style="color:#aaa;font-size:0.9rem">Нет монтажников. Добавьте выше.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  workers.forEach(w => {
+    const tag = document.createElement('div');
+    tag.className = 'worker-tag';
+    tag.innerHTML = `👷 ${w} <button onclick="removeWorker('${w}')" title="Удалить">×</button>`;
+    list.appendChild(tag);
+  });
+}
+
+function addWorker() {
+  const input = document.getElementById('new-worker-input');
+  const name = input.value.trim();
+  if (!name) return;
+  const workers = loadWorkers();
+  if (workers.includes(name)) { alert('Такой монтажник уже есть'); return; }
+  workers.push(name);
+  saveWorkers(workers);
+  input.value = '';
+  renderWorkersList();
+}
+
+function removeWorker(name) {
+  if (!confirm(`Удалить монтажника "${name}"? Его оценки останутся.`)) return;
+  const workers = loadWorkers().filter(w => w !== name);
+  saveWorkers(workers);
+  renderWorkersList();
+  populateWorkerSelect();
+}
+
+function clearAllVotes() {
+  if (!confirm('Удалить ВСЕ оценки? Это действие нельзя отменить.')) return;
+  saveVotes([]);
+  renderResults();
+}
+
+// ===== INIT =====
+populateWorkerSelect();
+</script>
+</body>
+</html>
